@@ -9,7 +9,11 @@
 
 ### Session 2025-10-11
 
-- Q: Maximum number of concurrent sessions per user? → A: Three sessions per user
+- Q: Maximum number of concurrent sessions per user? → A: Three active sessions per user with the following constraints:
+  - Session persistence: 24 hours from last activity
+  - Automatic cleanup of inactive sessions after 24 hours
+  - New session attempts when at limit prompt user to close an existing session
+  - Session state persisted to allow resuming within the 24-hour window
 - Q: Feedback timeout duration and fallback behavior? → A: 48 hours timeout with requester notification
 - Q: How to handle multiple responses to same request? → A: All responses logged, first valid wins
 - Q: Authentication mechanism required? → A: OAuth2 with JWT tokens
@@ -113,6 +117,34 @@ System maintains communication when users close the chat by falling back to alte
 
 ## Requirements
 
+### Error Handling Requirements
+
+- **ERR-001**: System MUST handle network failures by:
+  - Displaying user-friendly error messages
+  - Automatically attempting to reconnect (max 5 attempts)
+  - Preserving unsent messages in local storage
+  - Restoring session state upon reconnection
+- **ERR-002**: System MUST handle invalid inputs by:
+  - Validating all user inputs before processing
+  - Providing clear error messages for validation failures
+  - Suggesting corrections when possible
+  - Maintaining form state during validation
+- **ERR-003**: System MUST handle API failures by:
+  - Implementing circuit breaker pattern for external services
+  - Providing fallback behaviors for each critical operation
+  - Logging detailed error information for debugging
+  - Showing appropriate user-facing error messages
+- **ERR-004**: System MUST handle authentication errors by:
+  - Detecting token expiration/invalidation
+  - Attempting silent token refresh
+  - Prompting for re-authentication when needed
+  - Preserving user context during re-authentication
+- **ERR-005**: System MUST implement graceful degradation by:
+  - Maintaining core chat functionality during non-critical service outages
+  - Providing offline indicators when applicable
+  - Queueing operations that can be retried later
+  - Syncing queued operations when service is restored
+
 ### Functional Requirements
 
 - **FR-001**: System MUST implement a single-page application architecture for the chat interface
@@ -131,10 +163,29 @@ System maintains communication when users close the chat by falling back to alte
 - **FR-014**: System MUST detect chat disconnection and implement channel failover in the order: Chat → Email → Slack
 - **FR-015**: System MUST support dynamic switching between communication channels
 - **FR-016**: System MUST maintain conversation context across different communication channels
-- **FR-017**: System MUST implement OAuth2 authentication with JWT tokens
-- **FR-018**: System MUST maintain secure authentication state across all communication channels
+- **FR-017**: System MUST implement OAuth2 authentication with JWT tokens, including:
+  - OAuth2 standard-compliant authorization flow
+  - JWT token-based session management
+  - Secure token refresh mechanism
+  - Token revocation capability
+- **FR-018**: System MUST maintain secure authentication state across all communication channels:
+  - Consistent authentication state across web, email, and Slack interfaces
+  - Secure token storage and transmission
+  - Automatic token refresh before expiration
+  - Cross-channel session synchronization
 - **FR-019**: System MUST encrypt all communications in transit
-- **FR-020**: System MUST enforce rate limiting of 30 requests per minute per user across all channels
+- **FR-020**: System MUST enforce rate limiting with the following rules:
+  - Limit: 30 agent interaction requests per minute per user across all channels
+  - Counted operations:
+    - Chat messages sent to agent
+    - Channel preference changes
+    - Feedback responses
+    - Session management operations (create/close)
+  - Excluded operations:
+    - Status checks and health pings
+    - Authentication token refreshes
+    - Real-time message streaming chunks
+    - Automatic channel failover events
 - **FR-021**: System MUST synchronize conversation state from alternative channels when chat is reopened
 
 ### Success Criteria

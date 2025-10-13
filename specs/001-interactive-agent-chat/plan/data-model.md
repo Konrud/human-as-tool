@@ -283,6 +283,12 @@ stateDiagram-v2
 
 ## Rate Limiting
 
-- Per user: 30 requests/minute
-- Per session: 10 requests/minute
-- Per channel: 20 requests/minute
+### Global Limits
+
+- Per user: 30 requests/minute (across all channels)
+
+### Rate Limit Persistence
+
+- Stored in database for cross-instance synchronization
+- Tracks user ID, request count, and window timestamp
+- Auto-cleanup of expired windows
