@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Testing
+/coverage/
+
+# Production
+/build/
+/dist/
+
+# Development
+.env*
+
+# Package files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Python backend
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/

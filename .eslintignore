@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Testing
+/coverage/
+
+# Production
+/build/
+/dist/
+
+# Development
+.env*
+
+# Python backend
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
