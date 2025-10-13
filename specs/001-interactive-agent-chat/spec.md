@@ -150,6 +150,31 @@ System maintains communication when users close the chat by falling back to alte
 - **FR-001**: System MUST implement a single-page application architecture for the chat interface
 - **FR-002**: System MUST display agent responses in real-time using streaming
 - **FR-003**: System MUST show clear status indicators for agent states (active, thinking, paused, awaiting feedback)
+- **FR-022**: System MUST implement standardized status codes and meanings across all communication channels:
+  - 200: Success - Request processed successfully
+  - 201: Created - New resource created (session, feedback request)
+  - 202: Accepted - Request accepted for async processing
+  - 204: No Content - Success response with no content
+  - 400: Bad Request - Invalid parameters or format
+  - 401: Unauthorized - Authentication required
+  - 403: Forbidden - Insufficient permissions
+  - 404: Not Found - Resource not found
+  - 408: Request Timeout - Operation timed out
+  - 429: Too Many Requests - Rate limit exceeded
+  - 500: Internal Error - Server-side failure
+  - 502: Bad Gateway - Third-party service error
+  - 503: Service Unavailable - System temporarily unavailable
+  - 504: Gateway Timeout - Third-party service timeout
+- **FR-023**: System MUST provide comprehensive API documentation:
+  - OpenAPI/Swagger specifications for all REST endpoints
+  - WebSocket protocol documentation with message formats
+  - Authentication and authorization flows
+  - Rate limiting details and quota management
+  - Error response formats and handling guidelines
+  - Integration guides for Gmail and Slack channels
+  - Sample code for common operations
+  - Environment setup and configuration guide
+  - API versioning and deprecation policy
 - **FR-004**: System MUST support agent pause and resume functionality
 - **FR-005**: System MUST implement message queueing with exponential backoff for channel failures (1s initial delay, doubling up to 1 hour max, maximum 10 attempts)
 - **FR-006**: System MUST integrate with email (Gmail) for feedback requests and responses
