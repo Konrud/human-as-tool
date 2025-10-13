@@ -19,12 +19,16 @@
 - **Configuration**: python-dotenv
 - **Prompt Management**: BAML
 - **Real-time**: WebSocket support via FastAPI's WebSocket
-- **Authentication**: JWT with FastAPI's built-in security
+- **Authentication**: OAuth2 with JWT implementation using FastAPI security features:
+  - OAuth2 authorization flow with JWT token issuance
+  - FastAPI OAuth2 password bearer with JWT tokens
+  - Secure token refresh and revocation endpoints
+  - Cross-channel token synchronization middleware
 
 ### External Services Integration
 
-- Gmail API for email channel
-- Slack API for Slack channel
+- Gmail API for email channel (OAuth2 integration)
+- Slack API for Slack channel (OAuth2 integration)
 - BAML for prompt management and agent orchestration
 
 ### Infrastructure Requirements
@@ -32,7 +36,11 @@
 1. WebSocket server capability for real-time chat
 2. Message queue system for handling channel failures
 3. Data persistence layer for conversation state
-4. OAuth2 provider setup for authentication
+4. OAuth2 authentication server with:
+   - JWT token management
+   - Token refresh mechanism
+   - Cross-channel state synchronization
+   - Rate limiting for auth requests
 
 ## Constitution Check
 
@@ -80,9 +88,18 @@
 
 4. **Authentication Flow**
 
-   - OAuth2 implementation with FastAPI
-   - JWT token management
-   - Cross-channel auth state maintenance
+   - OAuth2 implementation with FastAPI:
+     - Standard OAuth2 password flow
+     - OAuth2 authorization code flow for external services
+     - FastAPI security dependency injection
+   - JWT token management:
+     - Token generation and validation
+     - Automatic refresh mechanism
+     - Secure storage and transmission
+   - Cross-channel auth state maintenance:
+     - Synchronized session management
+     - Consistent token validation
+     - State recovery mechanisms
 
 5. **BAML Integration**
    - BAML setup and configuration
@@ -102,29 +119,57 @@
 1. **Core Components**
 
    ```typescript
-   src / components / chat / ChatWindow.tsx;
-   MessageStream.tsx;
-   StatusIndicator.tsx;
-   feedback / FeedbackRequest.tsx;
-   ChannelSelector.tsx;
-   common / LoadingStates.tsx;
-   hooks / useWebSocket.ts;
-   useChannelSync.ts;
-   useAuthState.ts;
-   services / api.ts;
-   websocket.ts;
-   channelManager.ts;
-   stores / chatContext.ts;
-   authContext.ts;
-   types / index.ts;
+   src/
+     components/
+       session/
+         ChatSession.tsx       # Main session container
+         MessageList.tsx       # Message history display
+         MessageInput.tsx      # Message composition
+         SessionStatus.tsx     # Session state indicator
+       feedback/
+         FeedbackRequest.tsx   # Feedback request display
+         FeedbackResponse.tsx  # Response input/display
+       channel/
+         ChannelSelector.tsx   # Channel preference UI
+         ChannelStatus.tsx     # Channel state indicator
+       agent/
+         AgentStatus.tsx       # Agent state display
+         ThinkingIndicator.tsx # Agent processing indicator
+       common/
+         LoadingStates.tsx     # Shared loading states
+     hooks/
+       useSession.ts          # ChatSession management
+       useMessage.ts          # Message operations
+       useFeedback.ts         # Feedback handling
+       useChannel.ts          # Channel management
+       useAgent.ts            # Agent state management
+       useWebSocket.ts        # WebSocket connection
+     services/
+       api.ts                 # API client
+       websocket.ts           # WebSocket client
+       channel-manager.ts     # Channel orchestration
+     stores/
+       session-store.ts       # Session state management
+       agent-store.ts         # Agent state management
+     types/
+       models.ts             # Shared type definitions
    ```
 
 2. **API Layer**
    ```typescript
-   src / services / queries / useChatSession.ts;
-   useFeedbackRequest.ts;
-   mutations / useUpdateChannel.ts;
-   useSubmitFeedback.ts;
+   src/
+     services/
+       queries/
+         useSession.ts         # ChatSession queries
+         useMessages.ts        # Message queries
+         useFeedbackRequest.ts # FeedbackRequest queries
+         useAgentState.ts     # AgentState queries
+         useChannels.ts       # CommunicationChannel queries
+       mutations/
+         useSessionMutation.ts      # Session operations
+         useMessageMutation.ts      # Message operations
+         useFeedbackMutation.ts     # Feedback operations
+         useChannelMutation.ts      # Channel operations
    ```
 
 ### Backend Architecture
@@ -146,23 +191,34 @@
        feedback_service.py
        channel_service.py
      models/
-       chat.py
-       feedback.py
-       channel.py
+       chat_session.py      # ChatSession model with SessionStatus enum
+       message.py          # Message model with MessageType and MessageStatus enums
+       feedback_request.py # FeedbackRequest model with FeedbackType and FeedbackStatus enums
+       feedback_response.py # FeedbackResponse model
+       agent_state.py     # AgentState model with AgentStatus enum
+       communication_channel.py # CommunicationChannel model with ChannelType and ChannelStatus enums
+       base.py           # Shared base models and utilities
    ```
 
 2. **Service Layer**
    ```python
    services/
-     chat/
-       session_manager.py
-       message_handler.py
+     session/
+       session_manager.py   # Manages ChatSession lifecycle
+       message_handler.py   # Handles Message operations
+       state_manager.py    # Manages AgentState
+     feedback/
+       request_handler.py   # Manages FeedbackRequest lifecycle
+       response_handler.py  # Handles FeedbackResponse processing
      channels/
-       gmail_handler.py
-       slack_handler.py
+       base_handler.py     # Abstract base channel handler
+       chat_handler.py     # WebSocket chat implementation
+       email_handler.py    # Gmail API integration
+       slack_handler.py    # Slack API integration
+       channel_manager.py  # CommunicationChannel orchestration
      agent/
-       prompt_manager.py
-       state_manager.py
+       prompt_manager.py   # BAML prompt management
+       context_manager.py  # Agent context preservation
    ```
 
 ## Phase 2: Implementation Strategy
