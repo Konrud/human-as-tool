@@ -15,5 +15,6 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
-  "typescript.preferences.importModuleSpecifier": "relative"
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "python.languageServer": "None"
 }

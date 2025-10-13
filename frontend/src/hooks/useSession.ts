@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { useWebSocket } from "./useWebSocket";
-import { AgentStatus, ChannelStatus, ChannelType, SessionStatus } from "../types/models";
 import type { ChatSession } from "../types/models";
+import { AgentStatus, ChannelStatus, ChannelType, SessionStatus } from "../types/models";
+import { useWebSocket } from "./useWebSocket";
 
 interface UseSessionOptions {
   wsUrl: string;
@@ -52,6 +52,15 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
           ...prev,
           agentStatus: data.payload as AgentStatus,
         }));
+        break;
+      case "stream_start":
+        // Streaming start event (optional)
+        break;
+      case "stream_chunk":
+        // Streaming chunk event - would be handled by parent component
+        break;
+      case "stream_complete":
+        // Streaming complete event - would be handled by parent component
         break;
       case "error":
         setState((prev) => ({
