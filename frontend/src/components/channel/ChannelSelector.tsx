@@ -52,7 +52,7 @@ export function ChannelSelector({
               key={channel}
               value={channel}
               disabled={isDisabled}
-              className="min-h-[44px] cursor-pointer"
+              className="min-h-[45px] cursor-pointer"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <ChannelIcon channel={channel} size={16} className="flex-shrink-0" />
