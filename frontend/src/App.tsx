@@ -2,6 +2,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ChatPage } from "@/pages/ChatPage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { FeedbackDemo } from "@/pages/FeedbackDemo";
 import { LoginPage } from "@/pages/LoginPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -36,6 +37,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ChatPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/feedback-demo"
+              element={
+                <ProtectedRoute>
+                  <FeedbackDemo />
                 </ProtectedRoute>
               }
             />

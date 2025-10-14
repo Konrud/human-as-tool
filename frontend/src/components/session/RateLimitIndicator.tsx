@@ -6,7 +6,7 @@ import { AlertTriangle, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface RateLimitIndicatorProps {
-  rateLimit: RateLimitState;
+  rateLimit: RateLimitState & { shouldWarn: boolean };
   className?: string;
 }
 

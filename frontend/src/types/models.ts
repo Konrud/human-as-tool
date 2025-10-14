@@ -86,6 +86,11 @@ export interface FeedbackResponse {
   content: string;
   timestamp: Date;
   channel: ChannelType;
+  responderId?: string;
+  metadata?: {
+    valid?: boolean;
+    processedAt?: Date;
+  };
 }
 
 // Channel related types

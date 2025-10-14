@@ -1,6 +1,12 @@
 import { useCallback, useState } from "react";
 import type { ChatSession } from "../types/models";
-import { AgentStatus, ChannelStatus, ChannelType, SessionStatus } from "../types/models";
+import {
+  AgentStatus,
+  ChannelStatus,
+  ChannelType,
+  FeedbackStatus,
+  SessionStatus,
+} from "../types/models";
 import { useWebSocket } from "./useWebSocket";
 
 interface UseSessionOptions {
@@ -52,6 +58,60 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
           ...prev,
           agentStatus: data.payload as AgentStatus,
         }));
+        break;
+      case "feedback_request":
+        // New feedback request received - update session
+        setState((prev) => {
+          if (!prev.session) return prev;
+          return {
+            ...prev,
+            session: {
+              ...prev.session,
+              feedbackRequests: [...prev.session.feedbackRequests, data.payload as any],
+              status: SessionStatus.PAUSED,
+            },
+          };
+        });
+        break;
+      case "feedback_response":
+        // Feedback response submitted - update request status
+        setState((prev) => {
+          if (!prev.session) return prev;
+          const response = data.payload as any;
+          const newStatus =
+            response.content === "approved"
+              ? FeedbackStatus.APPROVED
+              : FeedbackStatus.REJECTED;
+          return {
+            ...prev,
+            session: {
+              ...prev.session,
+              feedbackRequests: prev.session.feedbackRequests.map((req) =>
+                req.id === response.requestId
+                  ? {
+                      ...req,
+                      status: newStatus,
+                      responses: [...req.responses, response],
+                    }
+                  : req
+              ),
+            },
+          };
+        });
+        break;
+      case "session_resumed":
+        // Session resumed after feedback
+        setState((prev) => {
+          if (!prev.session) return prev;
+          return {
+            ...prev,
+            session: {
+              ...prev.session,
+              status: SessionStatus.ACTIVE,
+            },
+            agentStatus: AgentStatus.IDLE,
+          };
+        });
         break;
       case "stream_start":
         // Streaming start event (optional)
@@ -133,6 +193,24 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
     [send, state.session?.id, state.session?.status]
   );
 
+  const submitFeedbackResponse = useCallback(
+    (requestId: string, content: string, approved?: boolean) => {
+      if (state.session?.id) {
+        send({
+          type: "feedback_response",
+          payload: {
+            requestId,
+            content,
+            approved,
+            sessionId: state.session.id,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    },
+    [send, state.session?.id]
+  );
+
   return {
     session: state.session,
     channelStatus: state.channelStatus,
@@ -145,6 +223,7 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
       pauseSession,
       resumeSession,
       sendMessage,
+      submitFeedbackResponse,
     },
   };
 }

@@ -63,17 +63,27 @@ export const DashboardPage: React.FC = () => {
         {/* Success Alert */}
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
-          <AlertTitle>Phase 2 Implementation Complete!</AlertTitle>
+          <AlertTitle>Phase 3 Implementation Complete!</AlertTitle>
           <AlertDescription>
-            Core chat interface with real-time messaging and streaming is now ready.
+            Feedback request UI with pause/resume workflow is now ready. Test the interactive
+            demo!
           </AlertDescription>
         </Alert>
 
         {/* Quick Actions */}
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <Button onClick={() => navigate("/chat")} size="lg" className="gap-2">
             <MessageSquare className="h-5 w-5" />
             Start Chat Session
+          </Button>
+          <Button
+            onClick={() => navigate("/feedback-demo")}
+            size="lg"
+            variant="outline"
+            className="gap-2"
+          >
+            <CheckCircle2 className="h-5 w-5" />
+            View Feedback Demo
           </Button>
         </div>
 

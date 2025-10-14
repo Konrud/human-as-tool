@@ -1,23 +1,63 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { AgentStatus, SessionStatus as SessionStatusEnum } from "@/types/models";
+import type { FeedbackRequest } from "@/types/models";
+import {
+  AgentStatus,
+  FeedbackStatus,
+  SessionStatus as SessionStatusEnum,
+} from "@/types/models";
 import { AlertCircle, CheckCircle, Clock, Pause } from "lucide-react";
 
 interface SessionStatusProps {
   sessionStatus: SessionStatusEnum;
   agentStatus: AgentStatus;
+  feedbackRequests?: FeedbackRequest[];
   className?: string;
 }
 
-export function SessionStatus({ sessionStatus, agentStatus, className }: SessionStatusProps) {
+export function SessionStatus({
+  sessionStatus,
+  agentStatus,
+  feedbackRequests = [],
+  className,
+}: SessionStatusProps) {
+  // Count pending feedback requests
+  const pendingCount = feedbackRequests.filter(
+    (req) => req.status === FeedbackStatus.PENDING
+  ).length;
+
+  // Check if any feedback is expiring soon (less than 2 hours)
+  const hasUrgentFeedback = feedbackRequests.some((req) => {
+    if (req.status !== FeedbackStatus.PENDING) return false;
+    const now = new Date().getTime();
+    const expiry = new Date(req.expiresAt).getTime();
+    const remaining = expiry - now;
+    return remaining < 2 * 60 * 60 * 1000; // 2 hours
+  });
+
   const getStatusConfig = () => {
     // Session-level status takes precedence
     if (sessionStatus === SessionStatusEnum.PAUSED) {
       return {
         icon: <Pause className="h-4 w-4" />,
         title: "Session Paused",
-        description: "Waiting for feedback or approval to continue",
-        variant: "default" as const,
+        description:
+          pendingCount > 0
+            ? `Awaiting ${pendingCount} feedback ${
+                pendingCount === 1 ? "response" : "responses"
+              } to continue`
+            : "Waiting for feedback or approval to continue",
+        variant: hasUrgentFeedback ? ("destructive" as const) : ("default" as const),
+        badge:
+          pendingCount > 0 ? (
+            <Badge
+              variant={hasUrgentFeedback ? "destructive" : "default"}
+              className={cn(hasUrgentFeedback && "animate-pulse")}
+            >
+              {pendingCount} pending
+            </Badge>
+          ) : null,
       };
     }
 
@@ -27,6 +67,7 @@ export function SessionStatus({ sessionStatus, agentStatus, className }: Session
         title: "Session Ended",
         description: "This conversation has been closed",
         variant: "default" as const,
+        badge: null,
       };
     }
 
@@ -38,6 +79,7 @@ export function SessionStatus({ sessionStatus, agentStatus, className }: Session
           title: "Agent Thinking",
           description: "Processing your request...",
           variant: "default" as const,
+          badge: null,
         };
       case AgentStatus.RESPONDING:
         return {
@@ -45,6 +87,7 @@ export function SessionStatus({ sessionStatus, agentStatus, className }: Session
           title: "Agent Responding",
           description: "Generating response...",
           variant: "default" as const,
+          badge: null,
         };
       case AgentStatus.ERROR:
         return {
@@ -52,6 +95,7 @@ export function SessionStatus({ sessionStatus, agentStatus, className }: Session
           title: "Agent Error",
           description: "Something went wrong. Please try again.",
           variant: "destructive" as const,
+          badge: null,
         };
       case AgentStatus.IDLE:
       default:
@@ -67,9 +111,16 @@ export function SessionStatus({ sessionStatus, agentStatus, className }: Session
 
   return (
     <Alert variant={config.variant} className={cn("mx-4 mt-4", className)}>
-      {config.icon}
-      <AlertTitle>{config.title}</AlertTitle>
-      <AlertDescription>{config.description}</AlertDescription>
+      <div className="flex items-start justify-between w-full gap-2">
+        <div className="flex items-start gap-2 flex-1">
+          {config.icon}
+          <div className="flex-1">
+            <AlertTitle>{config.title}</AlertTitle>
+            <AlertDescription>{config.description}</AlertDescription>
+          </div>
+        </div>
+        {config.badge && <div className="flex-shrink-0">{config.badge}</div>}
+      </div>
     </Alert>
   );
 }
