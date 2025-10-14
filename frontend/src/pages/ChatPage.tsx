@@ -1,15 +1,15 @@
+import { ChannelFallbackAlert } from "@/components/channel/ChannelFallbackAlert";
+import { ChannelReconnecting } from "@/components/channel/ChannelReconnecting";
+import { ChannelSelector } from "@/components/channel/ChannelSelector";
+import {
+  ChannelSettings,
+  getDefaultChannelPreferences,
+} from "@/components/channel/ChannelSettings";
 import { ChatSession } from "@/components/session/ChatSession";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
-import { ChannelType } from "@/types/models";
+import { ChannelStatus, ChannelType } from "@/types/models";
 import { Moon, Settings, Sun } from "lucide-react";
 import React, { useState } from "react";
 
@@ -18,8 +18,28 @@ const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws";
 export const ChatPage: React.FC = () => {
   const { user, logout } = useAuth();
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [selectedChannel, setSelectedChannel] = useState<ChannelType>(ChannelType.WEBSOCKET);
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
+  const [channelSettingsOpen, setChannelSettingsOpen] = useState(false);
+  const [channelPreferences, setChannelPreferences] = useState(getDefaultChannelPreferences());
+
+  // Mock channel status - in real app, this would come from useSession
+  const [mockChannelStatus] = useState<Record<ChannelType, ChannelStatus>>({
+    [ChannelType.WEBSOCKET]: ChannelStatus.ACTIVE,
+    [ChannelType.EMAIL]: ChannelStatus.INACTIVE,
+    [ChannelType.SLACK]: ChannelStatus.INACTIVE,
+  });
+
+  // Mock fallback state
+  const [showFallback, setShowFallback] = useState(false);
+  const [fallbackInfo, setFallbackInfo] = useState<{
+    previousChannel: ChannelType;
+    currentChannel: ChannelType;
+    reason: string;
+  } | null>(null);
+
+  // Mock reconnecting state
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -31,6 +51,44 @@ export const ChatPage: React.FC = () => {
     if (!currentSessionId) {
       setCurrentSessionId(sessionId);
     }
+  };
+
+  const handleChannelChange = (channel: ChannelType) => {
+    console.log("Channel changed to:", channel);
+    // In real app, this would call session.actions.changePreferredChannel(channel)
+
+    // Demo: Simulate fallback when switching to Email (for testing)
+    if (channel === ChannelType.EMAIL) {
+      setFallbackInfo({
+        previousChannel: ChannelType.WEBSOCKET,
+        currentChannel: ChannelType.EMAIL,
+        reason: "WebSocket connection timed out",
+      });
+      setShowFallback(true);
+    }
+  };
+
+  const handleRetryChannel = () => {
+    console.log("Retrying channel");
+    setShowFallback(false);
+    setIsReconnecting(true);
+    setReconnectAttempts(1);
+    // Simulate reconnection
+    setTimeout(() => {
+      setIsReconnecting(false);
+      setReconnectAttempts(0);
+    }, 5000);
+  };
+
+  const handleCancelReconnect = () => {
+    setIsReconnecting(false);
+    setReconnectAttempts(0);
+  };
+
+  const handleSaveChannelPreferences = async (preferences: typeof channelPreferences) => {
+    console.log("Saving channel preferences:", preferences);
+    setChannelPreferences(preferences);
+    // In real app, this would send to backend via WebSocket
   };
 
   return (
@@ -55,19 +113,12 @@ export const ChatPage: React.FC = () => {
             {/* Controls */}
             <div className="flex items-center gap-2">
               {/* Channel Selector */}
-              <Select
-                value={selectedChannel}
-                onValueChange={(value) => setSelectedChannel(value as ChannelType)}
-              >
-                <SelectTrigger className="w-[140px] h-10">
-                  <SelectValue placeholder="Channel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ChannelType.WEBSOCKET}>WebSocket</SelectItem>
-                  <SelectItem value={ChannelType.EMAIL}>Email</SelectItem>
-                  <SelectItem value={ChannelType.SLACK}>Slack</SelectItem>
-                </SelectContent>
-              </Select>
+              <ChannelSelector
+                value={channelPreferences.priority[0]}
+                channelStatus={mockChannelStatus}
+                onChange={handleChannelChange}
+                disabled={false}
+              />
 
               {/* Theme Toggle */}
               <Button
@@ -83,8 +134,13 @@ export const ChatPage: React.FC = () => {
                 )}
               </Button>
 
-              {/* Settings */}
-              <Button variant="outline" size="icon" className="h-10 w-10 hidden md:flex">
+              {/* Channel Settings */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setChannelSettingsOpen(true)}
+                className="h-10 w-10 hidden md:flex"
+              >
                 <Settings className="h-4 w-4" />
               </Button>
 
@@ -97,8 +153,31 @@ export const ChatPage: React.FC = () => {
         </div>
       </header>
 
+      {/* Channel Reconnecting Indicator */}
+      {isReconnecting && (
+        <ChannelReconnecting
+          channel={ChannelType.WEBSOCKET}
+          attempts={reconnectAttempts}
+          maxAttempts={5}
+          nextRetryIn={5}
+          onCancel={handleCancelReconnect}
+        />
+      )}
+
       {/* Main Chat Area */}
       <main className="flex-1 container max-w-6xl mx-auto px-4 py-6 overflow-hidden">
+        {/* Channel Fallback Alert */}
+        {showFallback && fallbackInfo && (
+          <ChannelFallbackAlert
+            previousChannel={fallbackInfo.previousChannel}
+            currentChannel={fallbackInfo.currentChannel}
+            reason={fallbackInfo.reason}
+            onRetry={handleRetryChannel}
+            onDismiss={() => setShowFallback(false)}
+            className="mb-4"
+          />
+        )}
+
         <div className="h-full">
           <ChatSession
             wsUrl={WS_URL}
@@ -107,6 +186,14 @@ export const ChatPage: React.FC = () => {
           />
         </div>
       </main>
+
+      {/* Channel Settings Dialog */}
+      <ChannelSettings
+        open={channelSettingsOpen}
+        onOpenChange={setChannelSettingsOpen}
+        initialPreferences={channelPreferences}
+        onSave={handleSaveChannelPreferences}
+      />
     </div>
   );
 };

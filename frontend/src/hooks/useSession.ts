@@ -113,6 +113,76 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
           };
         });
         break;
+      case "channel_status_update":
+        // Channel status changed
+        setState((prev) => {
+          const payload = data.payload as { channel: ChannelType; status: ChannelStatus };
+          return {
+            ...prev,
+            channelStatus: {
+              ...prev.channelStatus,
+              [payload.channel]: payload.status,
+            },
+          };
+        });
+        break;
+      case "channel_fallback":
+        // Channel fallback occurred
+        setState((prev) => {
+          const payload = data.payload as {
+            previousChannel: ChannelType;
+            currentChannel: ChannelType;
+            reason: string;
+          };
+          if (!prev.session) return prev;
+          return {
+            ...prev,
+            session: {
+              ...prev.session,
+              preferredChannel: payload.currentChannel,
+            },
+          };
+        });
+        break;
+      case "channel_reconnect_attempt":
+        // Channel reconnection attempt
+        setState((prev) => {
+          const payload = data.payload as { channel: ChannelType; attempt: number };
+          return {
+            ...prev,
+            channelStatus: {
+              ...prev.channelStatus,
+              [payload.channel]: ChannelStatus.RECONNECTING,
+            },
+          };
+        });
+        break;
+      case "channel_reconnect_success":
+        // Channel reconnection succeeded
+        setState((prev) => {
+          const payload = data.payload as { channel: ChannelType };
+          return {
+            ...prev,
+            channelStatus: {
+              ...prev.channelStatus,
+              [payload.channel]: ChannelStatus.ACTIVE,
+            },
+          };
+        });
+        break;
+      case "channel_reconnect_failed":
+        // Channel reconnection failed
+        setState((prev) => {
+          const payload = data.payload as { channel: ChannelType };
+          return {
+            ...prev,
+            channelStatus: {
+              ...prev.channelStatus,
+              [payload.channel]: ChannelStatus.ERROR,
+            },
+          };
+        });
+        break;
       case "stream_start":
         // Streaming start event (optional)
         break;
@@ -211,6 +281,33 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
     [send, state.session?.id]
   );
 
+  const changePreferredChannel = useCallback(
+    (channel: ChannelType) => {
+      if (state.session?.id) {
+        send({
+          type: "change_preferred_channel",
+          payload: {
+            sessionId: state.session.id,
+            channel,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        // Optimistically update local state
+        setState((prev) => {
+          if (!prev.session) return prev;
+          return {
+            ...prev,
+            session: {
+              ...prev.session,
+              preferredChannel: channel,
+            },
+          };
+        });
+      }
+    },
+    [send, state.session?.id]
+  );
+
   return {
     session: state.session,
     channelStatus: state.channelStatus,
@@ -224,6 +321,7 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
       resumeSession,
       sendMessage,
       submitFeedbackResponse,
+      changePreferredChannel,
     },
   };
 }
