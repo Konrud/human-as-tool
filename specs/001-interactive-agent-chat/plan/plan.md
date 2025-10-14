@@ -155,6 +155,10 @@
        models.ts             # Shared type definitions
    ```
 
+   UI Component Placement: All new components from the shadcn library must be added to `frontend\src\components\ui`. Do not create a new folder for newly added shadcn components.
+
+   Use `ComponentRef<T>` instead of `React.ElementRef` when working with component references.
+
 2. **API Layer**
    ```typescript
    src/
