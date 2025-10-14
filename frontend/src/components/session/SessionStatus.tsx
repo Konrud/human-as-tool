@@ -1,9 +1,11 @@
+import { ChannelIcon, getChannelLabel } from "@/components/channel/ChannelIcon";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { FeedbackRequest } from "@/types/models";
 import {
   AgentStatus,
+  ChannelType,
   FeedbackStatus,
   SessionStatus as SessionStatusEnum,
 } from "@/types/models";
@@ -13,6 +15,7 @@ interface SessionStatusProps {
   sessionStatus: SessionStatusEnum;
   agentStatus: AgentStatus;
   feedbackRequests?: FeedbackRequest[];
+  currentChannel?: ChannelType;
   className?: string;
 }
 
@@ -20,6 +23,7 @@ export function SessionStatus({
   sessionStatus,
   agentStatus,
   feedbackRequests = [],
+  currentChannel = ChannelType.WEBSOCKET,
   className,
 }: SessionStatusProps) {
   // Count pending feedback requests
@@ -109,6 +113,16 @@ export function SessionStatus({
     return null;
   }
 
+  // Add channel info for non-WebSocket channels
+  const channelInfo =
+    currentChannel !== ChannelType.WEBSOCKET ? (
+      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+        <span>via</span>
+        <ChannelIcon channel={currentChannel} size={12} />
+        <span className="font-medium">{getChannelLabel(currentChannel)}</span>
+      </div>
+    ) : null;
+
   return (
     <Alert variant={config.variant} className={cn("mx-4 mt-4", className)}>
       <div className="flex items-start justify-between w-full gap-2">
@@ -116,7 +130,10 @@ export function SessionStatus({
           {config.icon}
           <div className="flex-1">
             <AlertTitle>{config.title}</AlertTitle>
-            <AlertDescription>{config.description}</AlertDescription>
+            <AlertDescription>
+              {config.description}
+              {channelInfo}
+            </AlertDescription>
           </div>
         </div>
         {config.badge && <div className="flex-shrink-0">{config.badge}</div>}
