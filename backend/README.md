@@ -2,6 +2,22 @@
 
 Backend API for the Interactive Agent Chat System, built with FastAPI and supporting WebSocket-based real-time communication with multi-channel feedback support.
 
+**Current Phase**: Phase 6 Complete - Backend Core Features  
+**Status**: ✅ Fully Functional
+
+## What's New in Phase 6
+
+- ✅ BAML agent integration with chat-specific templates
+- ✅ Multi-level rate limiting (user/session/channel)
+- ✅ Comprehensive session management with validation
+- ✅ Enhanced WebSocket with streaming support
+- ✅ REST API for session management
+- ✅ Agent service with state management
+- ✅ Complete validation rules
+- ✅ Integration tests
+
+See [PHASE-6-COMPLETE.md](PHASE-6-COMPLETE.md) for detailed documentation.
+
 ## Prerequisites
 
 - Python 3.13 or higher
@@ -46,21 +62,23 @@ SLACK_CLIENT_ID=your_slack_client_id
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-### 4. Initialize BAML (Phase 6)
+### 4. Initialize BAML (Required for Phase 6+)
 
-BAML framework setup will be completed in Phase 6. For now, you can check if BAML is installed:
+**Phase 6 includes chat-specific BAML templates** in `baml_src/chat_agent.baml`.
+
+After modifying any `.baml` files, regenerate the Python client:
+
+```bash
+poetry run baml-cli generate
+```
+
+Check BAML installation:
 
 ```bash
 poetry run baml-cli --version
 ```
 
-To initialize BAML structure (will be done in Phase 6):
-
-```bash
-cd backend
-poetry run baml-cli init
-poetry run baml-cli generate
-```
+**Note**: If you encounter issues with `poetry run baml-cli`, you may need to install baml-cli globally or ensure Poetry's bin directory is in your PATH.
 
 ### 5. Run Development Server
 

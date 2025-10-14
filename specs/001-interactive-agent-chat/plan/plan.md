@@ -19,6 +19,7 @@
 - **Configuration**: python-dotenv
 - **Prompt Management**: BAML
 - **Real-time**: WebSocket support via FastAPI's WebSocket
+- **DateTime Handling**: Always use timezone-aware datetime objects with `datetime.now(timezone.utc)` instead of deprecated `datetime.utcnow()`
 - **Authentication**: OAuth2 with JWT implementation using FastAPI security features:
   - OAuth2 authorization flow with JWT token issuance
   - FastAPI OAuth2 password bearer with JWT tokens
