@@ -38,7 +38,6 @@ export function ChannelSelector({
         aria-label="Select communication channel"
       >
         <div className="flex items-center gap-2">
-          <ChannelIcon channel={value} size={16} />
           <SelectValue placeholder="Select channel" />
         </div>
       </SelectTrigger>
@@ -53,14 +52,16 @@ export function ChannelSelector({
               key={channel}
               value={channel}
               disabled={isDisabled}
-              className="min-h-[44px] cursor-pointer"
+              className="min-h-[45px] cursor-pointer"
             >
-              <div className="flex items-center justify-between w-full gap-3">
-                <div className="flex items-center gap-2">
-                  <ChannelIcon channel={channel} size={16} />
-                  <span className="font-medium">{getChannelLabel(channel)}</span>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <ChannelIcon channel={channel} size={16} className="flex-shrink-0" />
+                <span className="font-medium flex-1 min-w-0 truncate">
+                  {getChannelLabel(channel)}
+                </span>
+                <div className="flex-shrink-0">
+                  <ChannelStatusBadge status={status} showTooltip={false} />
                 </div>
-                <ChannelStatusBadge status={status} showTooltip={false} />
               </div>
             </SelectItem>
           );
