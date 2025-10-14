@@ -1,4 +1,6 @@
+import { FeedbackList } from "@/components/feedback/FeedbackList";
 import { Card } from "@/components/ui/card";
+import { useFeedback } from "@/hooks/useFeedback";
 import { useMessageStream } from "@/hooks/useMessageStream";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useSession } from "@/hooks/useSession";
@@ -23,15 +25,20 @@ export function ChatSession({ wsUrl, sessionId, onSessionUpdate }: ChatSessionPr
     sessionId,
   });
 
-  const {
-    startStream,
-    addChunk,
-    completeStream,
-    mergeStreamWithMessage,
-    isStreaming: checkIsStreaming,
-  } = useMessageStream();
+  const { mergeStreamWithMessage, isStreaming: checkIsStreaming } = useMessageStream();
 
   const rateLimit = useRateLimit({ limit: 30, warningThreshold: 0.2 });
+
+  const feedback = useFeedback({
+    sessionId: session?.id || null,
+    onSubmit: (requestId, response) => {
+      actions.submitFeedbackResponse(
+        requestId,
+        response.content || "",
+        response.content === "approved"
+      );
+    },
+  });
 
   // Track session creation
   useEffect(() => {
@@ -61,6 +68,26 @@ export function ChatSession({ wsUrl, sessionId, onSessionUpdate }: ChatSessionPr
     // This is just for UI feedback
   }, []);
 
+  const handleSubmitApproval = useCallback(
+    (requestId: string, approved: boolean) => {
+      const request = session?.feedbackRequests.find((r) => r.id === requestId);
+      if (request) {
+        feedback.submitApproval(request, approved);
+      }
+    },
+    [session?.feedbackRequests, feedback]
+  );
+
+  const handleSubmitInput = useCallback(
+    (requestId: string, content: string) => {
+      const request = session?.feedbackRequests.find((r) => r.id === requestId);
+      if (request) {
+        feedback.submitInput(request, content);
+      }
+    },
+    [session?.feedbackRequests, feedback]
+  );
+
   // Merge streaming content with messages
   const messagesWithStreaming = useMemo(() => {
     if (!session?.messages) return [];
@@ -87,6 +114,10 @@ export function ChatSession({ wsUrl, sessionId, onSessionUpdate }: ChatSessionPr
   const showAgentThinking =
     agentStatus === AgentStatus.THINKING && streamingMessageIds.size === 0;
 
+  const isPaused = session?.status === SessionStatus.PAUSED;
+  const hasPendingFeedback =
+    feedback.getPendingRequests(session?.feedbackRequests || []).length > 0;
+
   return (
     <Card className="flex flex-col h-full">
       {/* Connection Status */}
@@ -97,7 +128,28 @@ export function ChatSession({ wsUrl, sessionId, onSessionUpdate }: ChatSessionPr
 
       {/* Session Status */}
       {session && (
-        <SessionStatusComponent sessionStatus={session.status} agentStatus={agentStatus} />
+        <SessionStatusComponent
+          sessionStatus={session.status}
+          agentStatus={agentStatus}
+          feedbackRequests={session.feedbackRequests}
+        />
+      )}
+
+      {/* Feedback Section - Show when paused */}
+      {isPaused && hasPendingFeedback && (
+        <div className="px-4 py-3 border-b">
+          <FeedbackList
+            requests={session?.feedbackRequests || []}
+            onSubmitApproval={handleSubmitApproval}
+            onSubmitInput={handleSubmitInput}
+            loading={feedback.loading}
+            errors={feedback.errors}
+            getPendingRequests={feedback.getPendingRequests}
+            getCompletedRequests={feedback.getCompletedRequests}
+            getTimeRemaining={feedback.getTimeRemaining}
+            isExpiringSoon={feedback.isExpiringSoon}
+          />
+        </div>
       )}
 
       {/* Message List */}
