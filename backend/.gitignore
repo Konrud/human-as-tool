@@ -38,7 +38,6 @@ htmlcov/
 
 # BAML
 baml_client/
-baml_src/
 
 # Logs
 *.log

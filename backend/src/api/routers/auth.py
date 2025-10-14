@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 import uuid
@@ -47,8 +47,8 @@ async def register(user_data: UserCreate):
         username=user_data.username,
         hashed_password=auth_service.get_password_hash(user_data.password),
         is_active=True,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
     
     # Save user to storage

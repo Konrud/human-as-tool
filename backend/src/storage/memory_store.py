@@ -1,11 +1,18 @@
 from typing import Dict, List, Optional, Set
-from datetime import datetime
+from datetime import datetime, timezone
 from ..models.user import User
-from ..models.base import ChatSession, SessionStatus
+from ..models.base import (
+    ChatSession,
+    SessionStatus,
+    Message,
+    FeedbackRequest,
+    FeedbackResponse,
+    AgentState,
+)
 
 
 class MemoryStore:
-    """In-memory storage for users, sessions, and rate limiting."""
+    """In-memory storage for users, sessions, messages, feedback, and rate limiting."""
     
     def __init__(self):
         # User storage
@@ -16,6 +23,19 @@ class MemoryStore:
         # Session storage
         self.sessions: Dict[str, ChatSession] = {}
         self.user_sessions: Dict[str, Set[str]] = {}  # user_id -> session_ids
+        
+        # Message storage
+        self.messages: Dict[str, Message] = {}
+        self.session_messages: Dict[str, List[str]] = {}  # session_id -> message_ids
+        
+        # Feedback storage
+        self.feedback_requests: Dict[str, FeedbackRequest] = {}
+        self.feedback_responses: Dict[str, FeedbackResponse] = {}
+        self.session_feedbacks: Dict[str, List[str]] = {}  # session_id -> feedback_request_ids
+        self.request_responses: Dict[str, List[str]] = {}  # request_id -> response_ids
+        
+        # Agent state storage
+        self.agent_states: Dict[str, AgentState] = {}  # session_id -> agent_state
         
         # Rate limiting storage
         self.rate_limits: Dict[str, List[datetime]] = {}  # key -> timestamps
@@ -112,11 +132,11 @@ class MemoryStore:
             limit: Maximum number of requests allowed
             window_seconds: Time window in seconds
             
-        Returns:
-            True if request is allowed, False if rate limit exceeded
-        """
-        now = datetime.utcnow()
-        cutoff_timestamp = datetime.timestamp(now) - window_seconds
+            Returns:
+                True if request is allowed, False if rate limit exceeded
+            """
+            now = datetime.now(timezone.utc)
+            cutoff_timestamp = datetime.timestamp(now) - window_seconds
         
         # Initialize or clean old timestamps
         if key in self.rate_limits:
@@ -137,7 +157,7 @@ class MemoryStore:
     
     def get_rate_limit_status(self, key: str, limit: int, window_seconds: int) -> dict:
         """Get current rate limit status for a key."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         cutoff_timestamp = datetime.timestamp(now) - window_seconds
         
         # Get valid timestamps
@@ -164,6 +184,144 @@ class MemoryStore:
             "reset_at": reset_at,
             "window_seconds": window_seconds
         }
+    
+    # ==================== Message Operations ====================
+    
+    def create_message(self, message: Message) -> Message:
+        """Create a new message."""
+        self.messages[message.id] = message
+        if message.session_id not in self.session_messages:
+            self.session_messages[message.session_id] = []
+        self.session_messages[message.session_id].append(message.id)
+        return message
+    
+    def get_message(self, message_id: str) -> Optional[Message]:
+        """Get message by ID."""
+        return self.messages.get(message_id)
+    
+    def get_session_messages(
+        self,
+        session_id: str,
+        limit: Optional[int] = None
+    ) -> List[Message]:
+        """Get all messages for a session, optionally limited."""
+        message_ids = self.session_messages.get(session_id, [])
+        messages = [
+            self.messages[mid]
+            for mid in message_ids
+            if mid in self.messages
+        ]
+        
+        if limit:
+            messages = messages[-limit:]
+        
+        return messages
+    
+    def update_message(self, message: Message) -> Message:
+        """Update an existing message."""
+        if message.id in self.messages:
+            self.messages[message.id] = message
+        return message
+    
+    # ==================== Feedback Request Operations ====================
+    
+    def create_feedback_request(
+        self,
+        feedback_request: FeedbackRequest
+    ) -> FeedbackRequest:
+        """Create a new feedback request."""
+        self.feedback_requests[feedback_request.id] = feedback_request
+        if feedback_request.session_id not in self.session_feedbacks:
+            self.session_feedbacks[feedback_request.session_id] = []
+        self.session_feedbacks[feedback_request.session_id].append(
+            feedback_request.id
+        )
+        return feedback_request
+    
+    def get_feedback_request(
+        self,
+        request_id: str
+    ) -> Optional[FeedbackRequest]:
+        """Get feedback request by ID."""
+        return self.feedback_requests.get(request_id)
+    
+    def get_session_feedback_requests(
+        self,
+        session_id: str
+    ) -> List[FeedbackRequest]:
+        """Get all feedback requests for a session."""
+        request_ids = self.session_feedbacks.get(session_id, [])
+        return [
+            self.feedback_requests[rid]
+            for rid in request_ids
+            if rid in self.feedback_requests
+        ]
+    
+    def update_feedback_request(
+        self,
+        feedback_request: FeedbackRequest
+    ) -> FeedbackRequest:
+        """Update an existing feedback request."""
+        if feedback_request.id in self.feedback_requests:
+            self.feedback_requests[feedback_request.id] = feedback_request
+        return feedback_request
+    
+    # ==================== Feedback Response Operations ====================
+    
+    def create_feedback_response(
+        self,
+        feedback_response: FeedbackResponse
+    ) -> FeedbackResponse:
+        """Create a new feedback response."""
+        self.feedback_responses[feedback_response.id] = feedback_response
+        if feedback_response.request_id not in self.request_responses:
+            self.request_responses[feedback_response.request_id] = []
+        self.request_responses[feedback_response.request_id].append(
+            feedback_response.id
+        )
+        return feedback_response
+    
+    def get_feedback_response(
+        self,
+        response_id: str
+    ) -> Optional[FeedbackResponse]:
+        """Get feedback response by ID."""
+        return self.feedback_responses.get(response_id)
+    
+    def get_request_responses(
+        self,
+        request_id: str
+    ) -> List[FeedbackResponse]:
+        """Get all responses for a feedback request."""
+        response_ids = self.request_responses.get(request_id, [])
+        return [
+            self.feedback_responses[rid]
+            for rid in response_ids
+            if rid in self.feedback_responses
+        ]
+    
+    # ==================== Agent State Operations ====================
+    
+    def create_agent_state(self, agent_state: AgentState) -> AgentState:
+        """Create or update agent state for a session."""
+        self.agent_states[agent_state.session_id] = agent_state
+        return agent_state
+    
+    def get_agent_state(self, session_id: str) -> Optional[AgentState]:
+        """Get agent state for a session."""
+        return self.agent_states.get(session_id)
+    
+    def update_agent_state(self, agent_state: AgentState) -> AgentState:
+        """Update agent state for a session."""
+        self.agent_states[agent_state.session_id] = agent_state
+        return agent_state
+    
+    def delete_agent_state(self, session_id: str) -> bool:
+        """Delete agent state for a session."""
+        if session_id in self.agent_states:
+            del self.agent_states[session_id]
+            return True
+        return False
 
 
 # Global memory store instance
