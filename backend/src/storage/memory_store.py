@@ -145,9 +145,9 @@ class MemoryStore:
             
             Returns:
                 True if request is allowed, False if rate limit exceeded
-            """
-            now = datetime.now(timezone.utc)
-            cutoff_timestamp = datetime.timestamp(now) - window_seconds
+        """
+        now = datetime.now(timezone.utc)
+        cutoff_timestamp = datetime.timestamp(now) - window_seconds
         
         # Initialize or clean old timestamps
         if key in self.rate_limits:
