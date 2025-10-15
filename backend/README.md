@@ -2,21 +2,26 @@
 
 Backend API for the Interactive Agent Chat System, built with FastAPI and supporting WebSocket-based real-time communication with multi-channel feedback support.
 
-**Current Phase**: Phase 6 Complete - Backend Core Features  
-**Status**: ✅ Fully Functional
+**Current Phase**: Phase 7 Complete - Backend Channel Integration  
+**Status**: ✅ Fully Functional with Gmail & Slack
 
-## What's New in Phase 6
+## What's New in Phase 7
 
-- ✅ BAML agent integration with chat-specific templates
-- ✅ Multi-level rate limiting (user/session/channel)
-- ✅ Comprehensive session management with validation
-- ✅ Enhanced WebSocket with streaming support
-- ✅ REST API for session management
-- ✅ Agent service with state management
-- ✅ Complete validation rules
-- ✅ Integration tests
+- ✅ Gmail integration with OAuth2 and HTML email templates
+- ✅ Slack integration with interactive buttons and Block Kit
+- ✅ Intelligent channel orchestration with automatic fallback
+- ✅ Circuit breaker pattern for failing channels
+- ✅ Cross-channel state synchronization
+- ✅ First-valid-response wins logic
+- ✅ Delivery tracking across all channels
+- ✅ Channel health monitoring
 
-See [PHASE-6-COMPLETE.md](PHASE-6-COMPLETE.md) for detailed documentation.
+See [PHASE-7-COMPLETE.md](PHASE-7-COMPLETE.md) for detailed documentation.
+
+## Previous Phases
+
+- **Phase 6**: BAML agent integration, rate limiting, session management - [PHASE-6-COMPLETE.md](PHASE-6-COMPLETE.md)
+- **Phase 5**: Authentication and basic infrastructure
 
 ## Prerequisites
 
@@ -56,11 +61,36 @@ A `.env` file should already exist in the `backend/` directory. Update the confi
 # Security - IMPORTANT: Change SECRET_KEY in production
 SECRET_KEY=your-secret-key-here-change-in-production
 
-# Add your external service credentials when ready
-GMAIL_CLIENT_ID=your_gmail_client_id
+# Gmail Integration (Phase 7)
+GMAIL_CLIENT_ID=your_gmail_client_id_from_google_cloud_console
+GMAIL_CLIENT_SECRET=your_gmail_client_secret
+GMAIL_REDIRECT_URI=http://localhost:8000/api/channels/gmail/callback
+
+# Slack Integration (Phase 7)
 SLACK_CLIENT_ID=your_slack_client_id
+SLACK_CLIENT_SECRET=your_slack_client_secret
+SLACK_SIGNING_SECRET=your_slack_signing_secret
+SLACK_REDIRECT_URI=http://localhost:8000/api/channels/slack/callback
+
+# BAML/OpenAI (Phase 6)
 OPENAI_API_KEY=your_openai_api_key
 ```
+
+**Setting up Gmail OAuth2** (see PHASE-7-COMPLETE.md for details):
+
+1. Create project at https://console.cloud.google.com
+2. Enable Gmail API
+3. Create OAuth2 credentials (Web application)
+4. Add redirect URI: `http://localhost:8000/api/channels/gmail/callback`
+5. Copy credentials to `.env`
+
+**Setting up Slack App** (see PHASE-7-COMPLETE.md for details):
+
+1. Create app at https://api.slack.com/apps
+2. Enable Bot Token Scopes: `chat:write`, `users:read`, `users:read.email`, `im:write`
+3. Enable Event Subscriptions and Interactivity
+4. Install app to workspace
+5. Copy credentials to `.env`
 
 ### 4. Initialize BAML (Required for Phase 6+)
 
