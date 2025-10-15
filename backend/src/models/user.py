@@ -40,6 +40,11 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
+class RefreshTokenRequest(BaseModel):
+    """Request body for token refresh."""
+    refresh_token: str
+
+
 class UserResponse(BaseModel):
     """User response (without sensitive data)."""
     id: str

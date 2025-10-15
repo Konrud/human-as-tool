@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 import uuid
 
-from ...models.user import User, UserCreate, Token, UserResponse
+from ...models.user import User, UserCreate, Token, UserResponse, RefreshTokenRequest
 from ...services.auth_service import auth_service
 from ...storage.memory_store import store
 from ..dependencies import get_current_active_user
@@ -117,12 +117,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(refresh_token: str):
+async def refresh_token(request: RefreshTokenRequest):
     """
     Refresh access token using refresh token.
     
     Args:
-        refresh_token: Valid JWT refresh token
+        request: Request body containing the refresh token
         
     Returns:
         New JWT access and refresh tokens
@@ -131,7 +131,7 @@ async def refresh_token(refresh_token: str):
         HTTPException: If refresh token is invalid
     """
     # Decode refresh token
-    token_data = auth_service.decode_token(refresh_token)
+    token_data = auth_service.decode_token(request.refresh_token)
     if token_data is None or token_data.user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
