@@ -49,7 +49,7 @@ function ProcessUserMessage(
   conversation_history: string,
   session_context: string
 ) -> AgentResponse {
-  client CustomGPT5Mini
+  client CustomGPT4o
   
   prompt #"
     {{ _.role("system") }}
@@ -63,7 +63,6 @@ function ProcessUserMessage(
     Your responses should be:
     - Clear and concise
     - Helpful and accurate
-    - Professional yet friendly
     
     {{ _.role("user") }}
     
@@ -88,7 +87,7 @@ function DetermineNextAction(
   session_context: string,
   pending_tasks: string[]
 ) -> AgentAction {
-  client CustomGPT5Mini
+  client CustomGPT4o
   
   prompt #"
     {{ _.role("system") }}
@@ -129,7 +128,7 @@ function GenerateFeedbackRequest(
   risk_level: string,
   context: string
 ) -> FeedbackRequestGeneration {
-  client CustomGPT5Mini
+  client CustomGPT4o
   
   prompt #"
     {{ _.role("system") }}
@@ -162,13 +161,13 @@ function StreamingChatResponse(
   user_message: string,
   conversation_history: string
 ) -> string {
-  client CustomGPT5Mini
+  client CustomGPT4o
   
   prompt #"
     {{ _.role("system") }}
     
     You are a helpful AI assistant. Provide a conversational response to the user.
-    Keep responses natural, friendly, and helpful.
+    Keep responses natural, and helpful.
     
     {{ _.role("user") }}
     

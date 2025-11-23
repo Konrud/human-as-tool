@@ -149,12 +149,16 @@ async def handle_message(
             })
             return
         
+        # Get preferred channel
+        session = session_service.get_session(session_id)
+        channel = session.preferred_channel if session else ChannelType.WEBSOCKET
+        
         # Create user message
         user_message = session_service.create_message(
             session_id=session_id,
             content=content,
             message_type=MessageType.USER,
-            channel=ChannelType.WEBSOCKET
+            channel=channel
         )
         
         # Send confirmation
@@ -206,12 +210,21 @@ async def handle_message(
                     "payload": {"message": str(e)}
                 })
         else:
-            # Process and send complete response
-            agent_message = await agent_service.process_user_message(
-                session_id=session_id,
-                user_message=content,
-                channel=ChannelType.WEBSOCKET
-            )
+            # Process based on channel
+            if channel == ChannelType.EMAIL:
+                from .email_handler import handle_email_message
+                agent_message = await handle_email_message(
+                    session_id=session_id,
+                    user_id=user_id,
+                    message=user_message
+                )
+            else:
+                # Process via WebSocket
+                agent_message = await agent_service.process_user_message(
+                    session_id=session_id,
+                    user_message=content,
+                    channel=channel
+                )
             
             await websocket.send_json({
                 "type": "message",
@@ -293,6 +306,18 @@ async def handle_client_connection(websocket: WebSocket, user_id: str):
     session_id = None
     
     try:
+        # Accept the WebSocket connection first
+        await websocket.accept()
+        
+        # Send initial connection success message
+        await websocket.send_json({
+            "type": "connection_established",
+            "payload": {
+                "user_id": user_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        })
+        
         while True:
             # Receive and parse message
             raw_message = await websocket.receive_text()

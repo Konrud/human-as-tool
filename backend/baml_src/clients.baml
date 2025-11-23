@@ -1,6 +1,14 @@
 // Learn more about clients at https://docs.boundaryml.com/docs/snippets/clients/overview
 
 // Using the new OpenAI Responses API for enhanced formatting
+client<llm> CustomGPT4o {
+  provider openai-responses
+  options {
+    model "gpt-4o"
+    api_key env.OPENAI_API_KEY
+  }
+}
+
 client<llm> CustomGPT5 {
   provider openai-responses
   options {

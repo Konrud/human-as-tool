@@ -1,9 +1,8 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from .api.websocket.connection import handle_client_connection
-from .api.routers import auth
-from .api.routers import chat
-from .config import settings
+from src.api.websocket.connection import handle_client_connection
+from src.api.routers import auth, chat, email
+from src.config import settings
 
 app = FastAPI(
     title="Interactive Agent Chat System",
@@ -29,6 +28,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(chat.router)
+app.include_router(email.router)
 
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):

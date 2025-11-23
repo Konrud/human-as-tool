@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { ChatSession } from "../types/models";
 import {
   AgentStatus,
@@ -44,9 +44,16 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
     }));
   }, []);
 
+  // Ref to store send function to avoid circular dependency
+  const sendRef = useRef<((data: { type: string; payload: unknown }) => boolean) | null>(null);
+
+  // Ref to track whether we've auto-started a session
+  const autoStartedRef = useRef(false);
+
   // Handle WebSocket messages
   const handleMessage = useCallback((data: { type: string; payload: unknown }) => {
     switch (data.type) {
+      case "session_started":
       case "session_update":
         setState((prev) => ({
           ...prev,
@@ -203,12 +210,39 @@ export function useSession({ wsUrl, sessionId }: UseSessionOptions) {
     }
   }, []);
 
+  // Memoized status change handler to prevent reconnection churn
+  const handleStatusChange = useCallback(
+    (status: ChannelStatus) => {
+      handleChannelStatusChange(status);
+      if (
+        status === ChannelStatus.ACTIVE &&
+        !sessionId &&
+        !autoStartedRef.current &&
+        sendRef.current
+      ) {
+        // Automatically start a new session when connected
+        sendRef.current({
+          type: "start_session",
+          payload: {
+            preferred_channel: "websocket",
+            timestamp: new Date().toISOString(),
+          },
+        });
+        autoStartedRef.current = true;
+      }
+    },
+    [handleChannelStatusChange]
+  );
+
   // Initialize WebSocket connection
   const { send, status: wsStatus } = useWebSocket({
-    url: `${wsUrl}${sessionId ? `/${sessionId}` : ""}`,
+    url: wsUrl,
     onMessage: handleMessage,
-    onStatusChange: handleChannelStatusChange,
+    onStatusChange: handleStatusChange,
   });
+
+  // Update send ref whenever send changes
+  sendRef.current = send;
 
   // Session management functions
   const startSession = useCallback(() => {

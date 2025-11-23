@@ -4,7 +4,7 @@ import { useFeedback } from "@/hooks/useFeedback";
 import { useMessageStream } from "@/hooks/useMessageStream";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useSession } from "@/hooks/useSession";
-import { AgentStatus, SessionStatus } from "@/types/models";
+import { AgentStatus, ChannelStatus, ChannelType, SessionStatus } from "@/types/models";
 import { useCallback, useEffect, useMemo } from "react";
 import { AgentThinking } from "./AgentThinking";
 import { ConnectionStatus } from "./ConnectionStatus";
@@ -17,9 +17,10 @@ interface ChatSessionProps {
   wsUrl: string;
   sessionId?: string;
   onSessionUpdate?: (sessionId: string) => void;
+  onChannelStatusChange?: (channelStatus: Record<ChannelType, ChannelStatus>) => void;
 }
 
-export function ChatSession({ wsUrl, sessionId, onSessionUpdate }: ChatSessionProps) {
+export function ChatSession({ wsUrl, sessionId, onSessionUpdate, onChannelStatusChange }: ChatSessionProps) {
   const { session, channelStatus, agentStatus, wsStatus, actions } = useSession({
     wsUrl,
     sessionId,
@@ -46,6 +47,13 @@ export function ChatSession({ wsUrl, sessionId, onSessionUpdate }: ChatSessionPr
       onSessionUpdate(session.id);
     }
   }, [session?.id, onSessionUpdate]);
+
+  // Notify parent of channel status changes
+  useEffect(() => {
+    if (onChannelStatusChange) {
+      onChannelStatusChange(channelStatus);
+    }
+  }, [channelStatus, onChannelStatusChange]);
 
   // Handle WebSocket messages for streaming
   useEffect(() => {

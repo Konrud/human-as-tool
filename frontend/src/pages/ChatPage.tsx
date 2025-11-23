@@ -13,18 +13,19 @@ import { ChannelStatus, ChannelType } from "@/types/models";
 import { Moon, Settings, Sun } from "lucide-react";
 import React, { useState } from "react";
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws";
-
 export const ChatPage: React.FC = () => {
   const { user, logout } = useAuth();
+  const wsUrl = user
+    ? `${import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws"}/${user.id}`
+    : "";
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(false);
   const [channelPreferences, setChannelPreferences] = useState(getDefaultChannelPreferences());
 
-  // Mock channel status - in real app, this would come from useSession
-  const [mockChannelStatus] = useState<Record<ChannelType, ChannelStatus>>({
-    [ChannelType.WEBSOCKET]: ChannelStatus.ACTIVE,
+  // Track channel status from ChatSession
+  const [channelStatus, setChannelStatus] = useState<Record<ChannelType, ChannelStatus>>({
+    [ChannelType.WEBSOCKET]: ChannelStatus.INACTIVE,
     [ChannelType.EMAIL]: ChannelStatus.INACTIVE,
     [ChannelType.SLACK]: ChannelStatus.INACTIVE,
   });
@@ -51,6 +52,10 @@ export const ChatPage: React.FC = () => {
     if (!currentSessionId) {
       setCurrentSessionId(sessionId);
     }
+  };
+
+  const handleChannelStatusChange = (status: Record<ChannelType, ChannelStatus>) => {
+    setChannelStatus(status);
   };
 
   const handleChannelChange = (channel: ChannelType) => {
@@ -115,7 +120,7 @@ export const ChatPage: React.FC = () => {
               {/* Channel Selector */}
               <ChannelSelector
                 value={channelPreferences.priority[0]}
-                channelStatus={mockChannelStatus}
+                channelStatus={channelStatus}
                 onChange={handleChannelChange}
                 disabled={false}
               />
@@ -180,9 +185,10 @@ export const ChatPage: React.FC = () => {
 
         <div className="h-full">
           <ChatSession
-            wsUrl={WS_URL}
+            wsUrl={wsUrl}
             sessionId={currentSessionId}
             onSessionUpdate={handleSessionUpdate}
+            onChannelStatusChange={handleChannelStatusChange}
           />
         </div>
       </main>
