@@ -8,6 +8,9 @@ from ..models.base import (
     FeedbackRequest,
     FeedbackResponse,
     AgentState,
+    ChannelConnection,
+    ChannelType,
+    DeliveryAttempt,
 )
 
 
@@ -39,6 +42,14 @@ class MemoryStore:
         
         # Rate limiting storage
         self.rate_limits: Dict[str, List[datetime]] = {}  # key -> timestamps
+        
+        # Channel connection storage
+        self.channel_connections: Dict[str, ChannelConnection] = {}  # "{user_id}_{channel_type}" -> connection
+        self.user_channels: Dict[str, Set[ChannelType]] = {}  # user_id -> set of connected channel types
+        
+        # Delivery attempt storage
+        self.delivery_attempts: Dict[str, DeliveryAttempt] = {}  # attempt_id -> attempt
+        self.message_attempts: Dict[str, List[str]] = {}  # message_id -> attempt_ids
     
     # ==================== User Operations ====================
     
@@ -322,6 +333,87 @@ class MemoryStore:
             del self.agent_states[session_id]
             return True
         return False
+    
+    # ==================== Channel Connection Operations ====================
+    
+    def create_channel_connection(self, connection: ChannelConnection) -> ChannelConnection:
+        """Create or update a channel connection."""
+        key = f"{connection.user_id}_{connection.channel_type.value}"
+        self.channel_connections[key] = connection
+        
+        # Track user's connected channels
+        if connection.user_id not in self.user_channels:
+            self.user_channels[connection.user_id] = set()
+        self.user_channels[connection.user_id].add(connection.channel_type)
+        
+        return connection
+    
+    def get_channel_connection(
+        self,
+        user_id: str,
+        channel_type: ChannelType
+    ) -> Optional[ChannelConnection]:
+        """Get channel connection for a user and channel type."""
+        key = f"{user_id}_{channel_type.value}"
+        return self.channel_connections.get(key)
+    
+    def get_user_channel_connections(self, user_id: str) -> List[ChannelConnection]:
+        """Get all channel connections for a user."""
+        channel_types = self.user_channels.get(user_id, set())
+        connections = []
+        for channel_type in channel_types:
+            key = f"{user_id}_{channel_type.value}"
+            if key in self.channel_connections:
+                connections.append(self.channel_connections[key])
+        return connections
+    
+    def update_channel_connection(self, connection: ChannelConnection) -> ChannelConnection:
+        """Update an existing channel connection."""
+        key = f"{connection.user_id}_{connection.channel_type.value}"
+        if key in self.channel_connections:
+            self.channel_connections[key] = connection
+        return connection
+    
+    def delete_channel_connection(self, user_id: str, channel_type: ChannelType) -> bool:
+        """Delete a channel connection."""
+        key = f"{user_id}_{channel_type.value}"
+        if key in self.channel_connections:
+            del self.channel_connections[key]
+            
+            # Update user's connected channels
+            if user_id in self.user_channels:
+                self.user_channels[user_id].discard(channel_type)
+                if not self.user_channels[user_id]:
+                    del self.user_channels[user_id]
+            
+            return True
+        return False
+    
+    # ==================== Delivery Attempt Operations ====================
+    
+    def create_delivery_attempt(self, attempt: DeliveryAttempt) -> DeliveryAttempt:
+        """Create a new delivery attempt."""
+        self.delivery_attempts[attempt.id] = attempt
+        
+        # Track attempts by message
+        if attempt.message_id not in self.message_attempts:
+            self.message_attempts[attempt.message_id] = []
+        self.message_attempts[attempt.message_id].append(attempt.id)
+        
+        return attempt
+    
+    def get_delivery_attempt(self, attempt_id: str) -> Optional[DeliveryAttempt]:
+        """Get delivery attempt by ID."""
+        return self.delivery_attempts.get(attempt_id)
+    
+    def get_message_delivery_attempts(self, message_id: str) -> List[DeliveryAttempt]:
+        """Get all delivery attempts for a message."""
+        attempt_ids = self.message_attempts.get(message_id, [])
+        return [
+            self.delivery_attempts[aid]
+            for aid in attempt_ids
+            if aid in self.delivery_attempts
+        ]
 
 
 # Global memory store instance

@@ -123,3 +123,28 @@ class ChatSession(BaseModel):
     messages: List[Message] = []
     feedback_requests: List[FeedbackRequest] = []
     metadata: SessionMetadata
+
+class ChannelConnection(BaseModel):
+    """OAuth connection for external channels"""
+    user_id: str
+    channel_type: ChannelType
+    access_token: str
+    refresh_token: Optional[str] = None
+    token_expires_at: Optional[datetime] = None
+    scope: Optional[str] = None
+    extra_data: Optional[Dict[str, str]] = None  # Channel-specific data (email, slack_user_id, etc.)
+    created_at: datetime
+    updated_at: datetime
+    is_active: bool = True
+
+class DeliveryAttempt(BaseModel):
+    """Track message delivery attempts across channels"""
+    id: str
+    message_id: str
+    session_id: str
+    channel: ChannelType
+    status: MessageStatus
+    attempt_number: int = Field(ge=1)
+    attempted_at: datetime
+    error_message: Optional[str] = None
+    retry_after: Optional[datetime] = None
